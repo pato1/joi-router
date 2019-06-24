@@ -1,7 +1,6 @@
 'use strict';
 
 const assert = require('assert');
-const Joi = require('@hapi/joi');
 const helpMsg = ' -> see: https://github.com/koajs/joi-router/#validating-output';
 
 module.exports = OutputValidationRule;

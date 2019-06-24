@@ -19,11 +19,12 @@ module.exports = Router;
 // expose Joi for use in applications
 Router.Joi = Joi;
 
-function Router(validator) {
+function Router(providedValidator) {
+  const validator = providedValidator ? providedValidator : Joi.validate.bind(Joi)
   if (!(this instanceof Router)) {
-    return new Router(validator || Joi.validate);
+    return new Router(validator);
   }
-  this.validator = validator|| Joi.validate
+  this.validator = validator
   this.routes = [];
   this.router = new KoaRouter();
 }
