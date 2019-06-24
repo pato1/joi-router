@@ -19,11 +19,11 @@ module.exports = Router;
 // expose Joi for use in applications
 Router.Joi = Joi;
 
-function Router() {
+function Router(validator) {
   if (!(this instanceof Router)) {
-    return new Router();
+    return new Router(validator || Joi.validate);
   }
-
+  this.validator = validator|| Joi.validate
   this.routes = [];
   this.router = new KoaRouter();
 }
@@ -116,7 +116,7 @@ Router.prototype._addRoute = function addRoute(spec) {
 
   const bodyParser = makeBodyParser(spec);
   const specExposer = makeSpecExposer(spec);
-  const validator = makeValidator(spec);
+  const validator = makeValidator(spec, this.validator);
   const preHandlers = spec.pre ? flatten(spec.pre) : [];
   const handlers = flatten(spec.handler);
 
@@ -152,7 +152,7 @@ Router.prototype._validateRouteSpec = function validateRouteSpec(spec) {
   checkHandler(spec);
   checkPreHandler(spec);
   checkMethods(spec);
-  checkValidators(spec);
+  checkValidators(spec, this.validator);
 };
 
 /**
@@ -231,7 +231,7 @@ function checkMethods(spec) {
  * @api private
  */
 
-function checkValidators(spec) {
+function checkValidators(spec, validator) {
   if (!spec.validate) return;
 
   let text;
@@ -246,7 +246,7 @@ function checkValidators(spec) {
   }
 
   if (spec.validate.output) {
-    spec.validate._outputValidator = new OutputValidator(spec.validate.output);
+    spec.validate._outputValidator = new OutputValidator(spec.validate.output, validator);
   }
 
   // default HTTP status code for failures
@@ -400,7 +400,7 @@ function captureError(ctx, type, err) {
  * @api private
  */
 
-function makeValidator(spec) {
+function makeValidator(spec, validateFn) {
   const props = 'header query params body'.split(' ');
 
   return async function validator(ctx, next) {
@@ -412,7 +412,7 @@ function makeValidator(spec) {
       const prop = props[i];
 
       if (spec.validate[prop]) {
-        err = validateInput(prop, ctx, spec.validate);
+        err = validateInput(prop, ctx, spec.validate, validateFn);
 
         if (err) {
           captureError(ctx, prop, err);
@@ -470,11 +470,11 @@ async function prepareRequest(ctx, next) {
  * @api private
  */
 
-function validateInput(prop, ctx, validate) {
+function validateInput(prop, ctx, validate, validator) {
   debug('validating %s', prop);
 
   const request = ctx.request;
-  const res = Joi.validate(request[prop], validate[prop]);
+  const res = validator(request[prop], validate[prop]);
 
   if (res.error) {
     res.error.status = validate.failure;

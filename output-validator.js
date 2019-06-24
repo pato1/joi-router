@@ -5,18 +5,18 @@ const assert = require('assert');
 
 module.exports = OutputValidator;
 
-function OutputValidator(output) {
+function OutputValidator(output, validator) {
   assert.equal('object', typeof output, 'spec.validate.output must be an object');
 
-  this.rules = OutputValidator.tokenizeRules(output);
+  this.rules = OutputValidator.tokenizeRules(output, validator);
   OutputValidator.assertNoOverlappingStatusRules(this.rules);
 
   this.output = output;
 }
 
-OutputValidator.tokenizeRules = function tokenizeRules(output) {
+OutputValidator.tokenizeRules = function tokenizeRules(output, validator) {
   function createRule(status) {
-    return new OutputValidationRule(status, output[status]);
+    return new OutputValidationRule(status, output[status], validator);
   }
   return Object.keys(output).map(createRule);
 };

@@ -6,7 +6,7 @@ const helpMsg = ' -> see: https://github.com/koajs/joi-router/#validating-output
 
 module.exports = OutputValidationRule;
 
-function OutputValidationRule(status, spec) {
+function OutputValidationRule(status, spec, validator) {
   assert(status, 'OutputValidationRule: missing status param');
   assert(spec, 'OutputValidationRule: missing spec param');
 
@@ -15,6 +15,7 @@ function OutputValidationRule(status, spec) {
 
   this.status = status;
   this.spec = spec;
+  this.validator = validator
   this.validateSpec();
 }
 
@@ -70,14 +71,14 @@ OutputValidationRule.prototype.validateOutput = function validateOutput(ctx) {
   let result;
 
   if (this.spec.headers) {
-    result = Joi.validate(ctx.response.headers, this.spec.headers);
+    result = this.validator(ctx.response.headers, this.spec.headers);
     if (result.error) return result.error;
     // use casted values
     ctx.set(result.value);
   }
 
   if (this.spec.body) {
-    result = Joi.validate(ctx.body, this.spec.body);
+    result = this.validator(ctx.body, this.spec.body);
     if (result.error) return result.error;
     // use casted values
     ctx.body = result.value;
